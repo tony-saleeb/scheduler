@@ -1,6 +1,6 @@
 /**
  * توزيعة الخدام علي النادي
- * Simple flat design - no dropdowns
+ * Only the device that added a name can remove it
  */
 
 "use client";
@@ -16,6 +16,38 @@ import {
 } from '@/lib/firebase';
 
 const ADMIN_PASSWORD = "admin123";
+
+// Helper to get/set names added by this device
+const getMyNames = () => {
+  if (typeof window === 'undefined') return {};
+  try {
+    return JSON.parse(localStorage.getItem('mySignups') || '{}');
+  } catch {
+    return {};
+  }
+};
+
+const addMyName = (slotKey, name) => {
+  const myNames = getMyNames();
+  if (!myNames[slotKey]) myNames[slotKey] = [];
+  if (!myNames[slotKey].includes(name)) {
+    myNames[slotKey].push(name);
+    localStorage.setItem('mySignups', JSON.stringify(myNames));
+  }
+};
+
+const removeMyName = (slotKey, name) => {
+  const myNames = getMyNames();
+  if (myNames[slotKey]) {
+    myNames[slotKey] = myNames[slotKey].filter(n => n !== name);
+    localStorage.setItem('mySignups', JSON.stringify(myNames));
+  }
+};
+
+const isMyName = (slotKey, name) => {
+  const myNames = getMyNames();
+  return myNames[slotKey]?.includes(name) || false;
+};
 
 const formatTime = (hour, minute) => {
   const period = hour >= 12 ? 'م' : 'ص';
@@ -81,7 +113,7 @@ const TimePicker = ({ label, hour, minute, onChangeHour, onChangeMinute }) => {
   );
 };
 
-// Slot Card - Flat, no dropdown
+// Slot Card
 const SlotCard = ({ slot, onAdd, onRemoveAttendee, onRemove, isAdmin }) => {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -92,7 +124,17 @@ const SlotCard = ({ slot, onAdd, onRemoveAttendee, onRemove, isAdmin }) => {
     setLoading(true);
     const res = await onAdd(slot.key, name.trim());
     setLoading(false);
-    if (res.success) setName('');
+    if (res.success) {
+      addMyName(slot.key, name.trim()); // Track this name as mine
+      setName('');
+    }
+  };
+
+  const handleRemove = (attendeeName) => {
+    if (confirm(`إزالة ${attendeeName}؟`)) {
+      removeMyName(slot.key, attendeeName);
+      onRemoveAttendee(slot.key, attendeeName);
+    }
   };
 
   const timeStr = `${formatTime(slot.startHour, slot.startMinute || 0)} ← ${formatTime(slot.endHour, slot.endMinute || 0)}`;
@@ -103,14 +145,17 @@ const SlotCard = ({ slot, onAdd, onRemoveAttendee, onRemove, isAdmin }) => {
       
       {attendees.length > 0 && (
         <div className="slot-attendees">
-          {attendees.map((a, i) => (
-            <span key={i} className="attendee-chip">
-              {a}
-              <button onClick={() => {
-                if (confirm(`إزالة ${a}؟`)) onRemoveAttendee(slot.key, a);
-              }}>×</button>
-            </span>
-          ))}
+          {attendees.map((a, i) => {
+            const canRemove = isAdmin || isMyName(slot.key, a);
+            return (
+              <span key={i} className="attendee-chip">
+                {a}
+                {canRemove && (
+                  <button onClick={() => handleRemove(a)}>×</button>
+                )}
+              </span>
+            );
+          })}
         </div>
       )}
       
