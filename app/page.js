@@ -17,38 +17,6 @@ import {
 
 const ADMIN_PASSWORD = "admin123";
 
-// Helper to get/set names added by this device
-const getMyNames = () => {
-  if (typeof window === 'undefined') return {};
-  try {
-    return JSON.parse(localStorage.getItem('mySignups') || '{}');
-  } catch {
-    return {};
-  }
-};
-
-const addMyName = (slotKey, name) => {
-  const myNames = getMyNames();
-  if (!myNames[slotKey]) myNames[slotKey] = [];
-  if (!myNames[slotKey].includes(name)) {
-    myNames[slotKey].push(name);
-    localStorage.setItem('mySignups', JSON.stringify(myNames));
-  }
-};
-
-const removeMyName = (slotKey, name) => {
-  const myNames = getMyNames();
-  if (myNames[slotKey]) {
-    myNames[slotKey] = myNames[slotKey].filter(n => n !== name);
-    localStorage.setItem('mySignups', JSON.stringify(myNames));
-  }
-};
-
-const isMyName = (slotKey, name) => {
-  const myNames = getMyNames();
-  return myNames[slotKey]?.includes(name) || false;
-};
-
 const formatTime = (hour, minute) => {
   const period = hour >= 12 ? 'م' : 'ص';
   const displayHour = hour % 12 || 12;
@@ -114,7 +82,7 @@ const TimePicker = ({ label, hour, minute, onChangeHour, onChangeMinute }) => {
 };
 
 // Slot Card
-const SlotCard = ({ slot, onAdd, onRemoveAttendee, onRemove, isAdmin }) => {
+const SlotCard = ({ slot, onAdd, onRemoveAttendee, onRemove, isAdmin, myNames, onAddMyName }) => {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const attendees = slot.attendees || [];
@@ -125,16 +93,19 @@ const SlotCard = ({ slot, onAdd, onRemoveAttendee, onRemove, isAdmin }) => {
     const res = await onAdd(slot.key, name.trim());
     setLoading(false);
     if (res.success) {
-      addMyName(slot.key, name.trim()); // Track this name as mine
+      onAddMyName(slot.key, name.trim());
       setName('');
     }
   };
 
   const handleRemove = (attendeeName) => {
     if (confirm(`إزالة ${attendeeName}؟`)) {
-      removeMyName(slot.key, attendeeName);
       onRemoveAttendee(slot.key, attendeeName);
     }
+  };
+
+  const isMyName = (attendeeName) => {
+    return myNames[slot.key]?.includes(attendeeName) || false;
   };
 
   const timeStr = `${formatTime(slot.startHour, slot.startMinute || 0)} ← ${formatTime(slot.endHour, slot.endMinute || 0)}`;
@@ -146,7 +117,7 @@ const SlotCard = ({ slot, onAdd, onRemoveAttendee, onRemove, isAdmin }) => {
       {attendees.length > 0 && (
         <div className="slot-attendees">
           {attendees.map((a, i) => {
-            const canRemove = isAdmin || isMyName(slot.key, a);
+            const canRemove = isAdmin || isMyName(a);
             return (
               <span key={i} className="attendee-chip">
                 {a}
@@ -181,7 +152,7 @@ const SlotCard = ({ slot, onAdd, onRemoveAttendee, onRemove, isAdmin }) => {
 };
 
 // Date Section
-const DateSection = ({ date, slots, onAdd, onRemoveAttendee, onRemove, isAdmin }) => {
+const DateSection = ({ date, slots, onAdd, onRemoveAttendee, onRemove, isAdmin, myNames, onAddMyName }) => {
   return (
     <div className="date-section">
       <div className="date-header">
@@ -197,6 +168,8 @@ const DateSection = ({ date, slots, onAdd, onRemoveAttendee, onRemove, isAdmin }
             onRemoveAttendee={onRemoveAttendee}
             onRemove={onRemove}
             isAdmin={isAdmin}
+            myNames={myNames}
+            onAddMyName={onAddMyName}
           />
         ))}
       </div>
@@ -244,6 +217,22 @@ export default function Home() {
   const [toast, setToast] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [myNames, setMyNames] = useState({});
+
+  // Load myNames from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('mySignups');
+      if (saved) setMyNames(JSON.parse(saved));
+    } catch {}
+  }, []);
+
+  // Save myNames to localStorage when it changes
+  useEffect(() => {
+    if (Object.keys(myNames).length > 0) {
+      localStorage.setItem('mySignups', JSON.stringify(myNames));
+    }
+  }, [myNames]);
 
   useEffect(() => {
     const unsub = subscribeToSlots(s => { setSlots(s); setLoading(false); });
@@ -253,6 +242,17 @@ export default function Home() {
   const groupedSlots = useMemo(() => groupSlotsByDate(slots), [slots]);
 
   const msg = (m, t='success') => setToast({ message: m, type: t });
+
+  const handleAddMyName = (slotKey, name) => {
+    setMyNames(prev => {
+      const updated = { ...prev };
+      if (!updated[slotKey]) updated[slotKey] = [];
+      if (!updated[slotKey].includes(name)) {
+        updated[slotKey] = [...updated[slotKey], name];
+      }
+      return updated;
+    });
+  };
 
   const addSlot = async () => {
     if (!date) return msg('اختر تاريخ', 'error');
@@ -337,6 +337,8 @@ export default function Home() {
                 onRemoveAttendee={handleRemoveAtt}
                 onRemove={handleRemoveSlot}
                 isAdmin={isAdmin}
+                myNames={myNames}
+                onAddMyName={handleAddMyName}
               />
             ))}
           </div>
