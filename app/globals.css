@@ -290,17 +290,24 @@ body {
 }
 
 .attendee-chip button {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0,0,0,0.1);
+  background: rgba(0,0,0,0.15);
   border: none;
   border-radius: 50%;
   font-size: 14px;
+  font-weight: bold;
   cursor: pointer;
   color: var(--accent-dark);
+  transition: all 0.15s;
+}
+
+.attendee-chip button:hover {
+  background: var(--danger);
+  color: white;
 }
 
 .slot-signup {
