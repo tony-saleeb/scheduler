@@ -116,17 +116,12 @@ const SlotCard = ({ slot, onAdd, onRemoveAttendee, onRemove, isAdmin, myNames, o
       
       {attendees.length > 0 && (
         <div className="slot-attendees">
-          {attendees.map((a, i) => {
-            const canRemove = isAdmin || isMyName(a);
-            return (
-              <span key={i} className="attendee-chip">
-                {a}
-                {canRemove && (
-                  <button onClick={() => handleRemove(a)}>×</button>
-                )}
-              </span>
-            );
-          })}
+          {attendees.map((a, i) => (
+            <span key={i} className="attendee-chip">
+              {a}
+              <button onClick={() => handleRemove(a)}>×</button>
+            </span>
+          ))}
         </div>
       )}
       
