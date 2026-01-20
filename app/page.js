@@ -106,7 +106,9 @@ const SlotCard = ({ slot, onAdd, onRemoveAttendee, onRemove, isAdmin }) => {
           {attendees.map((a, i) => (
             <span key={i} className="attendee-chip">
               {a}
-              {isAdmin && <button onClick={() => onRemoveAttendee(slot.key, a)}>×</button>}
+              <button onClick={() => {
+                if (confirm(`إزالة ${a}؟`)) onRemoveAttendee(slot.key, a);
+              }}>×</button>
             </span>
           ))}
         </div>

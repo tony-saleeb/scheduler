@@ -5,7 +5,6 @@
 import { Cairo } from "next/font/google";
 import "./globals.css";
 
-// Cairo font - excellent for Arabic
 const cairo = Cairo({
   subsets: ["arabic", "latin"],
   display: "swap",
@@ -13,10 +12,10 @@ const cairo = Cairo({
 });
 
 export const metadata = {
-  title: "توزيعة الخدام علي النادي",
-  description: "تنظيم جدول الخدمة وتوزيع المواعيد على الخدام",
+  title: "Church Servant Scheduler",
+  description: "Organize service schedules",
   viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
-  themeColor: "#0f172a",
+  themeColor: "#059669",
 };
 
 export default function RootLayout({ children }) {
